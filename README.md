@@ -12,49 +12,67 @@ Aegis is a tool for embedding blind watermarks and digital signatures into image
 
 ## ✨ 主要功能 | Features
 
-- **隐形盲水印 (Blind Watermarking)**：在频域嵌入不可见的水印，支持图片和 PDF 全页面保护，具有一定的抗压缩和抗裁剪能力。
+- **隐形盲水印 (Blind Watermarking)**：在频域嵌入不可见的水印，支持全页面保护，具有抗压缩和抗裁剪能力。
 - **数字签名 (Digital Signature)**：支持 RSA-4096 签名，用于验证文件签署人身份及文件是否被篡改。
 - **文档支持 (Doc Support)**：支持对 PPTX 内部图片进行批量保护，以及对 PDF 页面进行整体水印覆盖。
-- **交互式命令行 (CLI)**：提供简单易用的中英双语交互菜单。
+- **并行处理 (Parallel Processing)**：针对多页 PDF 提供多进程并行加速。
 
 ---
 
-## 🚀 快速开始 | Quick Start
+## 🚀 安装 | Installation
 
-### 安装
 ```bash
 pip install aegis-watermark
 ```
+*注：环境需具备 Python 3.8+ 及 OpenCV 基础运行库。*
 
-### 使用
-在终端输入 `aegis` 即可进入交互菜单：
+---
+
+## 🛠️ 详细使用指南 | Detailed Usage Guide
+
+Aegis 提供交互式菜单与命令行参数两种使用方式。
+
+### 1. 身份初始化 (Identity Setup)
+在使用数字签名功能前，需要先建立身份：
+- 运行 `aegis` 并选择 **身份管理 (Identity)**。
+- 输入姓名（或机构名）与邮箱，系统将生成 RSA-4096 密钥对及证书。
+- **安全提示**：私钥保存在本地 `.aegis_identity/` 目录，请务必妥善保管。
+
+### 2. 交互模式 (Interactive Mode)
+直接在终端输入 `aegis` 即可进入向导：
+1. **嵌入水印 (Embed)**：
+   - 输入文件路径（图片、PDF 或 PPTX）。
+   - 输入水印文本。
+   - 设置**密钥 (Key)**：这是提取水印的唯一凭证，建议使用复杂的字符串。
+   - 若已初始化身份，可选择是否附加数字签名。
+2. **提取分析 (Extract)**：
+   - 输入带水印的文件路径。
+   - 输入嵌入时使用的密钥。
+   - 系统将生成分析报告，并输出水印证据图片。
+
+### 3. 命令行模式 (CLI Mode)
+适用于脚本自动化处理：
 ```bash
-aegis
+# 嵌入水印
+# -i: 输入文件, -o: 输出文件, -t: 水印内容, -k: 密钥
+aegis embed -i original.jpg -o protected.jpg -t "Copyright-2026" -k "MySecretKey"
+
+# 提取水印
+# -i: 输入文件, -o: 证据图保存路径, -k: 密钥
+aegis extract -i protected.jpg -o evidence.png -k "MySecretKey"
 ```
 
-1. **身份管理 (Identity)**：首次使用请先创建身份证书（保存在本地 `.aegis_identity/`）。
-2. **嵌入 (Embed)**：选择文件并输入水印内容。
-3. **提取 (Extract)**：输入带水印的文件，系统将分析并输出水印证据图。
+### 4. 特定格式说明 (Format Specifics)
+- **PDF**: 采用全页面平铺水印与 2K 超采样渲染，确保复杂背景下的提取清晰度。
+- **PPTX**: 自动遍历演示文稿中的所有幻灯片，对其中嵌入的图片进行盲水印保护。
 
 ---
 
 ## ⚠️ 注意事项 | Troubleshooting
 
-1. **密钥一致性**: 提取时必须使用与嵌入时相同的密钥。
-2. **尺寸敏感**: 盲水印对大幅度的非等比例缩放或过度裁剪较为敏感。
-3. **压缩强度**: 极低质量的有损压缩可能会破坏水印信号。
-
----
-
-## 💡 命令行模式 | CLI Mode
-
-```bash
-# 嵌入
-aegis embed -i in.png -o out.png -t "WM" -k "key"
-
-# 提取
-aegis extract -i out.png -o evidence.png -k "key"
-```
+- **提取乱码**: 盲水印对**密钥**极其敏感，提取时若密钥错误将得到乱码。此外，若图像比例被严重拉伸，提取效果也会受到影响。
+- **文件体积**: PDF 处理后由于采用了图像化保护，文件体积会有所增加。
+- **数字签名**: 若文件在签署后被第三方软件（如 Photoshop）修改并另存为，数字签名可能会失效。
 
 ---
 
