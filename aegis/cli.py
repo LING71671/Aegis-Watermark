@@ -15,6 +15,7 @@ os.environ["OPENCV_LOG_LEVEL"] = "OFF"
 
 from aegis.handlers.ppt import PPTHandler
 from aegis.handlers.image import ImageHandler
+from aegis.handlers.pdf import PDFHandler
 from aegis.core.signature import SignatureManager
 from aegis.core.sniffer import sniff_file_type
 
@@ -206,6 +207,9 @@ def run_embed(input, output, text, key, should_sign=False):
             if f_type == 'ppt':
                 handler = PPTHandler()
                 success = handler.process(input, output, text, key=key)
+            elif f_type == 'pdf':
+                handler = PDFHandler()
+                success = handler.process(input, output, text, key=key)
             elif f_type == 'image':
                 handler = ImageHandler()
                 success = handler.process(input, output, text, key=key)
@@ -254,6 +258,9 @@ def run_extract(input, output, key):
             if f_type == 'ppt':
                 handler = PPTHandler()
                 result = handler.extract(input, key=key)
+            elif f_type == 'pdf':
+                handler = PDFHandler()
+                result = handler.extract(input, output_wm_path=output, key=key)
             elif f_type == 'image' or sig_status != "none":
                 # 如果是图片，或者包含我们的签名，强制尝试图片模式
                 handler = ImageHandler()

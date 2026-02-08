@@ -23,7 +23,8 @@ setup(
         'rich',
         'python-pptx',
         'questionary',
-        'cryptography'
+        'cryptography',
+        'pymupdf'
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

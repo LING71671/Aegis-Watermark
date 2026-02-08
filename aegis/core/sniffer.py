@@ -21,9 +21,12 @@ def sniff_file_type(file_path):
         # 2. 检查 ZIP 特征 (PPTX 本质是 ZIP)
         # PK.. : 50 4B 03 04
         if header.startswith(b'PK\x03\x04'):
-            # 进一步确认是否包含 ppt/ 目录特征 (简单判断)
-            # 这里为保持轻量不深入解压，通常 PK 开头的我们就尝试以 PPT/Zip 处理
             return 'ppt'
+            
+        # 3. 检查 PDF 特征
+        # %PDF- : 25 50 44 46 2D
+        if header.startswith(b'%PDF-'):
+            return 'pdf'
             
         return 'unknown'
     except:
