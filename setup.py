@@ -11,7 +11,7 @@ setup(
     description='图片与PPT专业级隐形盲水印工具 | Professional blind watermarking tool for images and PPTX documents.',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/your-repo/Aegis-Watermark',
+    url='https://github.com/LING71671/Aegis-Watermark',
     packages=find_packages(),
     install_requires=[
         'blind-watermark',
