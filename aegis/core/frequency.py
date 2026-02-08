@@ -51,8 +51,8 @@ class FrequencyWatermarker:
         img.save(path)
         return path
 
-    def embed(self, input_path, output_path, text, intensity=5):
-        """标准嵌入流程"""
+    def embed(self, input_path, output_path, text, intensity=10):
+        """标准嵌入流程 - 使用更稳健的强度平衡点"""
         img = cv2.imread(input_path)
         if img is None: return False
         

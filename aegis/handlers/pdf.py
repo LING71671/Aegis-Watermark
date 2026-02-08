@@ -22,10 +22,11 @@ def process_single_page(page_data):
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         
         # 核心改进：统一图像尺寸，确保嵌入和提取时的 wm_size 完全一致
-        # 我们将页面统一缩放到宽度为 1200px (保持比例)
+        # 统一缩放到宽度为 1200px
         target_w = 1200
         target_h = int(img.shape[0] * (target_w / img.shape[1]))
-        img = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_LANCZOS4)
+        # 使用 INTER_AREA，这在缩小图像时能提供最好的抗锯齿效果，减少噪点
+        img = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_AREA)
         
         unique_id = uuid.uuid4().hex
         temp_page_img = f"temp_page_{page_index}_{unique_id}.png"
@@ -105,7 +106,10 @@ class PDFHandler(BaseHandler):
             # 必须缩放到嵌入时相同的宽度
             target_w = 1200
             target_h = int(img.shape[0] * (target_w / img.shape[1]))
-            img = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_LANCZOS4)
+            img = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_AREA)
+            
+            # 移除 CLAHE，改为轻微的高斯平滑，去除 PDF 渲染出的孤立噪点
+            img = cv2.GaussianBlur(img, (3, 3), 0)
             
             temp_extract_img = "temp_for_extract.png"
             cv2.imwrite(temp_extract_img, img)
