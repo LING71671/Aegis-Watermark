@@ -15,17 +15,15 @@ def process_single_page(page_data):
     try:
         doc = fitz.open(pdf_path)
         page = doc[page_index]
-        # 统一使用较高的 DPI 渲染
-        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        # 提高 DPI 以获得超采样效果
+        pix = page.get_pixmap(matrix=fitz.Matrix(3, 3))
         
         img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         
-        # 核心改进：统一图像尺寸，确保嵌入和提取时的 wm_size 完全一致
-        # 统一缩放到宽度为 1200px
-        target_w = 1200
+        # 统一缩放到 2000px 宽度
+        target_w = 2000
         target_h = int(img.shape[0] * (target_w / img.shape[1]))
-        # 使用 INTER_AREA，这在缩小图像时能提供最好的抗锯齿效果，减少噪点
         img = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_AREA)
         
         unique_id = uuid.uuid4().hex
@@ -34,16 +32,15 @@ def process_single_page(page_data):
         cv2.imwrite(temp_page_img, img)
         
         engine = FrequencyWatermarker(key=key)
-        success = engine.embed(temp_page_img, temp_protected_img, watermark_text)
+        # 使用平衡强度
+        success = engine.embed(temp_page_img, temp_protected_img, watermark_text, intensity=12)
         
         pdf_bytes = None
         if success:
             img_doc = fitz.open(temp_protected_img)
-            # 将图片转回 PDF，并保持原始页面比例
             pdf_bytes = img_doc.convert_to_pdf()
             img_doc.close()
             
-        # 清理
         if os.path.exists(temp_page_img): os.remove(temp_page_img)
         if os.path.exists(temp_protected_img): os.remove(temp_protected_img)
         doc.close()
@@ -58,21 +55,18 @@ class PDFHandler(BaseHandler):
         """
         并行处理 PDF: 利用多进程加速页面渲染与水印嵌入
         """
-        print(f"[*] Processing PDF (Parallel Mode): {input_path}")
+        print(f"[*] Processing PDF (High-Res Mode): {input_path}")
         try:
             doc = fitz.open(input_path)
             num_pages = len(doc)
-            doc.close() # 进程池内会重新打开
+            doc.close()
             
-            # 准备并行任务参数
             tasks = [(i, input_path, watermark_text, key) for i in range(num_pages)]
             
-            # 使用进程池执行
             results = []
             with ProcessPoolExecutor() as executor:
                 results = list(executor.map(process_single_page, tasks))
             
-            # 按页码排序合并结果
             results.sort(key=lambda x: x[0])
             
             output_doc = fitz.open()
@@ -91,25 +85,24 @@ class PDFHandler(BaseHandler):
 
     def extract(self, input_path, output_wm_path=None, key="1"):
         """
-        从 PDF 提取: 必须与 process 时的缩放逻辑保持高度一致
+        从 PDF 提取: 2000px 采样 + 中值滤波去噪
         """
-        print(f"[*] Extracting from PDF (Standardized Scale): {input_path}")
+        print(f"[*] Extracting from PDF (High-Res Mode): {input_path}")
         try:
             doc = fitz.open(input_path)
             if len(doc) == 0: return None
             
             page = doc[0]
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+            pix = page.get_pixmap(matrix=fitz.Matrix(3, 3))
             img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
             
-            # 必须缩放到嵌入时相同的宽度
-            target_w = 1200
+            target_w = 2000
             target_h = int(img.shape[0] * (target_w / img.shape[1]))
             img = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_AREA)
             
-            # 移除 CLAHE，改为轻微的高斯平滑，去除 PDF 渲染出的孤立噪点
-            img = cv2.GaussianBlur(img, (3, 3), 0)
+            # 使用中值滤波去除 DCT 带来的块状噪声 (椒盐噪声)
+            img = cv2.medianBlur(img, 3)
             
             temp_extract_img = "temp_for_extract.png"
             cv2.imwrite(temp_extract_img, img)

@@ -25,27 +25,30 @@ class FrequencyWatermarker:
         return (side, side)
 
     def pre_generate_wm(self, text, size):
-        """主进程预生成水印图，增强字体粗细以应对复杂背景"""
+        """主进程预生成水印图 - 采用全图平铺模式增加冗余度与清晰度"""
         img = Image.new('1', size, 0)
         draw = ImageDraw.Draw(img)
         
-        # 尝试使用较大的字体
-        font_size = int(size[0] * 0.1) # 占据宽度约 10%
-        if font_size < 20: font_size = 20
+        # 字体大小适配
+        font_size = int(size[0] * 0.05) 
+        if font_size < 15: font_size = 15
         
         try:
-            # 尝试加载一个清晰的字体，如果失败则回退
             font = ImageFont.load_default()
         except:
             font = None
         
         bbox = draw.textbbox((0, 0), text, font=font)
         tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        x, y = (size[0] - tw) // 2, (size[1] - th) // 2
         
-        # 绘制多次以模拟加粗效果，增强鲁棒性
-        for offset in [(-1, -1), (1, 1), (-1, 1), (1, -1), (0, 0)]:
-            draw.text((x + offset[0], y + offset[1]), text, font=font, fill=1)
+        # 平铺绘制
+        step_x = tw + 40
+        step_y = th + 40
+        for y in range(0, size[1], step_y):
+            for x in range(0, size[0], step_x):
+                # 错位平铺，增加鲁棒性
+                shift = (y // step_y % 2) * (step_x // 2)
+                draw.text(((x + shift) % size[0], y), text, font=font, fill=1)
         
         path = f"temp_master_wm_{uuid.uuid4().hex}.png"
         img.save(path)
