@@ -40,3 +40,10 @@ identity.crt
 private.key
 *.log
 temp/
+
+# Test Files
+*.png
+*.jpg
+*.jpeg
+*.pdf
+!README_assets/ # 如果以后有需要的图片，放在这个目录
