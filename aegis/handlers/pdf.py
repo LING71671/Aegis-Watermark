@@ -15,10 +15,17 @@ def process_single_page(page_data):
     try:
         doc = fitz.open(pdf_path)
         page = doc[page_index]
+        # 统一使用较高的 DPI 渲染
         pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
         
         img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        
+        # 核心改进：统一图像尺寸，确保嵌入和提取时的 wm_size 完全一致
+        # 我们将页面统一缩放到宽度为 1200px (保持比例)
+        target_w = 1200
+        target_h = int(img.shape[0] * (target_w / img.shape[1]))
+        img = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_LANCZOS4)
         
         unique_id = uuid.uuid4().hex
         temp_page_img = f"temp_page_{page_index}_{unique_id}.png"
@@ -31,6 +38,7 @@ def process_single_page(page_data):
         pdf_bytes = None
         if success:
             img_doc = fitz.open(temp_protected_img)
+            # 将图片转回 PDF，并保持原始页面比例
             pdf_bytes = img_doc.convert_to_pdf()
             img_doc.close()
             
@@ -59,8 +67,6 @@ class PDFHandler(BaseHandler):
             tasks = [(i, input_path, watermark_text, key) for i in range(num_pages)]
             
             # 使用进程池执行
-            # 注：在 Windows 下，必须确保代码在 if __name__ == "__main__" 下运行，
-            # 但作为库调用时，这里由调用的主进程保证。
             results = []
             with ProcessPoolExecutor() as executor:
                 results = list(executor.map(process_single_page, tasks))
@@ -84,9 +90,9 @@ class PDFHandler(BaseHandler):
 
     def extract(self, input_path, output_wm_path=None, key="1"):
         """
-        从 PDF 提取: 默认提取第一页的水印作为证据
+        从 PDF 提取: 必须与 process 时的缩放逻辑保持高度一致
         """
-        print(f"[*] Extracting from PDF (First Page): {input_path}")
+        print(f"[*] Extracting from PDF (Standardized Scale): {input_path}")
         try:
             doc = fitz.open(input_path)
             if len(doc) == 0: return None
@@ -95,6 +101,11 @@ class PDFHandler(BaseHandler):
             pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
             img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            
+            # 必须缩放到嵌入时相同的宽度
+            target_w = 1200
+            target_h = int(img.shape[0] * (target_w / img.shape[1]))
+            img = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_LANCZOS4)
             
             temp_extract_img = "temp_for_extract.png"
             cv2.imwrite(temp_extract_img, img)
