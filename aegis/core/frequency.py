@@ -18,8 +18,10 @@ class FrequencyWatermarker:
 
     def get_safe_wm_size(self, img_shape):
         h, w = img_shape[:2]
-        side = min(h // 8, w // 8)
+        # 减小一点尺寸，防止边界计算导致的溢出
+        side = min(h // 8, w // 8) - 2
         side = (side // 2) * 2
+        if side < 16: side = 16
         return (side, side)
 
     def pre_generate_wm(self, text, size):
@@ -39,6 +41,21 @@ class FrequencyWatermarker:
         img.save(path)
         return path
 
+    def embed(self, input_path, output_path, text, intensity=5):
+        """标准嵌入流程"""
+        img = cv2.imread(input_path)
+        if img is None: return False
+        
+        wm_size = self.get_safe_wm_size(img.shape)
+        wm_path = self.pre_generate_wm(text, wm_size)
+        
+        success = self.embed_with_precomputed_wm(input_path, output_path, wm_path, intensity)
+        
+        if os.path.exists(wm_path):
+            os.remove(wm_path)
+            
+        return success
+
     def embed_with_precomputed_wm(self, input_path, output_path, wm_path, intensity=5):
         """子进程专用的轻量化嵌入函数"""
         try:
@@ -50,7 +67,8 @@ class FrequencyWatermarker:
             bwm.read_wm(wm_path)
             bwm.embed(output_path)
             return True
-        except:
+        except Exception as e:
+            print(f"[!] Error in embed_with_precomputed_wm: {e}")
             return False
 
     def extract(self, input_path, wm_size, output_wm_path=None):
