@@ -108,5 +108,3 @@ aegis extract -i output.png -o evidence.png -k "YOUR_KEY"
 本项目采用 [MIT License](LICENSE) 开源。
 
 ---
-**Aegis - 为每一份智力成果披上隐形神盾。**
-**Protecting your intellectual property with invisible shields.**
