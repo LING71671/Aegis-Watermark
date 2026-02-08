@@ -19,12 +19,20 @@ Aegis is a tool for embedding blind watermarks and digital signatures into image
 
 ---
 
-## 🚀 安装 | Installation
+## 🚀 安装与环境配置 | Installation & Setup
+
+### 1. 环境准备
+在安装 Aegis 之前，请确保您的系统已具备以下基础环境：
+
+- **Python 3.8+**: 推荐从 [Python 官网](https://www.python.org/downloads/) 下载。如需指导，可参考 [官方安装指南](https://docs.python.org/zh-cn/3/using/index.html)。
+- **OpenCV 运行库**: 本工具依赖 OpenCV 进行底层图像处理。通常 `pip` 会自动处理相关依赖，但在某些特定环境下，您可能需要参考 [OpenCV 官方文档](https://docs.opencv.org/master/da/df6/tutorial_py_abs_installation.html) 手动配置环境。
+
+### 2. 安装 Aegis
+在终端执行以下命令即可一键安装：
 
 ```bash
 pip install aegis-watermark
 ```
-*注：环境需具备 Python 3.8+ 及 OpenCV 基础运行库。*
 
 ---
 
