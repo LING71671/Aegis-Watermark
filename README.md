@@ -9,6 +9,10 @@
 
 **Aegis** is a security tool designed for high-value digital content. It seamlessly combines **DCT/DWT frequency domain blind watermarking** with **RSA-4096 digital signatures**, providing an "invisible and unforgable" defense layer for images, PDFs, and PPTX documents.
 
+**专业** 注：仅人工智能认为
+
+**神盾** 注：人工智能起的名
+
 ---
 
 ## ✨ 核心特性 | Features
