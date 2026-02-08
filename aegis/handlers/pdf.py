@@ -2,58 +2,84 @@ import fitz  # PyMuPDF
 import os
 import cv2
 import numpy as np
-from PIL import Image
+import uuid
+from concurrent.futures import ProcessPoolExecutor
 from aegis.handlers.base import BaseHandler
 from aegis.core.frequency import FrequencyWatermarker
+
+def process_single_page(page_data):
+    """
+    独立函数，用于多进程并行调用。
+    """
+    page_index, pdf_path, watermark_text, key = page_data
+    try:
+        doc = fitz.open(pdf_path)
+        page = doc[page_index]
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        
+        img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        
+        unique_id = uuid.uuid4().hex
+        temp_page_img = f"temp_page_{page_index}_{unique_id}.png"
+        temp_protected_img = f"temp_prot_{page_index}_{unique_id}.png"
+        cv2.imwrite(temp_page_img, img)
+        
+        engine = FrequencyWatermarker(key=key)
+        success = engine.embed(temp_page_img, temp_protected_img, watermark_text)
+        
+        pdf_bytes = None
+        if success:
+            img_doc = fitz.open(temp_protected_img)
+            pdf_bytes = img_doc.convert_to_pdf()
+            img_doc.close()
+            
+        # 清理
+        if os.path.exists(temp_page_img): os.remove(temp_page_img)
+        if os.path.exists(temp_protected_img): os.remove(temp_protected_img)
+        doc.close()
+        
+        return page_index, pdf_bytes
+    except Exception as e:
+        print(f"[!] Error processing page {page_index}: {e}")
+        return page_index, None
 
 class PDFHandler(BaseHandler):
     def process(self, input_path, output_path, watermark_text, key="1"):
         """
-        处理 PDF: 将每一页渲染为图像，嵌入盲水印，最后合并
+        并行处理 PDF: 利用多进程加速页面渲染与水印嵌入
         """
-        print(f"[*] Processing PDF: {input_path}")
+        print(f"[*] Processing PDF (Parallel Mode): {input_path}")
         try:
             doc = fitz.open(input_path)
-            engine = FrequencyWatermarker(key=key)
+            num_pages = len(doc)
+            doc.close() # 进程池内会重新打开
             
-            # 创建一个临时的 PDF 用于存储带水印的页面
+            # 准备并行任务参数
+            tasks = [(i, input_path, watermark_text, key) for i in range(num_pages)]
+            
+            # 使用进程池执行
+            # 注：在 Windows 下，必须确保代码在 if __name__ == "__main__" 下运行，
+            # 但作为库调用时，这里由调用的主进程保证。
+            results = []
+            with ProcessPoolExecutor() as executor:
+                results = list(executor.map(process_single_page, tasks))
+            
+            # 按页码排序合并结果
+            results.sort(key=lambda x: x[0])
+            
             output_doc = fitz.open()
-            
-            for page_index in range(len(doc)):
-                page = doc[page_index]
-                # 将 PDF 页面渲染为高分辨率图片 (zoom=2.0 提高清晰度)
-                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-                
-                # 转为 numpy 数组 (RGB)
-                img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.h, pix.w, pix.n)
-                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                
-                # 临时保存渲染图
-                temp_page_img = f"temp_page_{page_index}.png"
-                temp_protected_img = f"temp_prot_{page_index}.png"
-                cv2.imwrite(temp_page_img, img)
-                
-                # 嵌入水印
-                success = engine.embed(temp_page_img, temp_protected_img, watermark_text)
-                
-                if success:
-                    # 将带水印的图片插回新 PDF
-                    img_doc = fitz.open(temp_protected_img)
-                    pdf_bytes = img_doc.convert_to_pdf()
+            for _, pdf_bytes in results:
+                if pdf_bytes:
                     img_pdf = fitz.open("pdf", pdf_bytes)
                     output_doc.insert_pdf(img_pdf)
-                    img_doc.close()
-                
-                # 清理临时文件
-                if os.path.exists(temp_page_img): os.remove(temp_page_img)
-                if os.path.exists(temp_protected_img): os.remove(temp_protected_img)
-
+                    img_pdf.close()
+            
             output_doc.save(output_path)
             output_doc.close()
-            doc.close()
             return True
         except Exception as e:
-            print(f"[!] PDF Processing Error: {e}")
+            print(f"[!] PDF Parallel Processing Error: {e}")
             return False
 
     def extract(self, input_path, output_wm_path=None, key="1"):
