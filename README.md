@@ -81,6 +81,22 @@ aegis
 
 ---
 
+## ⚠️ 注意事项 | Troubleshooting
+
+如果在提取过程中无法获得清晰的水印图像，请检查以下几点：
+
+1. **尺寸匹配 (Dimension Mismatch)**: 盲水印对图像尺寸非常敏感。尽管 Aegis 具备一定的自适应能力，但若图像在嵌入后被非等比例拉伸或过度裁剪，可能会导致提取失败。
+2. **密钥一致性 (Key Consistency)**: 提取时必须使用与嵌入时**完全相同**的密钥。即便是一位之差，导出的也会是无意义的噪点。
+3. **长宽比失真 (Aspect Ratio Distortion)**: 强行改变图像的长宽比（而非等比例缩放）会破坏频域分布，导致水印信号丢失。
+4. **过度攻击 (Extreme Compression)**: 虽然 Aegis 抗压缩能力强，但若图片被压缩至极低质量（如 JPEG 质量低于 10），水印信号可能会被视为噪声而抹除。
+
+1. **Dimension Mismatch**: Blind watermarks are highly sensitive to image size. While Aegis is adaptive, non-proportional scaling or excessive cropping may lead to extraction failure.
+2. **Key Consistency**: The **exact same key** must be used for both embedding and extraction. Even a single character difference will result in meaningless noise.
+3. **Aspect Ratio Distortion**: Forcing a change in aspect ratio (rather than proportional scaling) destroys the frequency domain distribution and leads to signal loss.
+4. **Extreme Compression**: Although Aegis is robust, extremely low-quality compression (e.g., JPEG quality < 10) may wipe out the watermark signal.
+
+---
+
 ## 💡 命令行模式 | CLI Mode
 
 如果您需要集成到脚本中，也可以使用命令参数模式：
