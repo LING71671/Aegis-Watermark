@@ -49,7 +49,7 @@ class PPTHandler(BaseHandler):
 
             # 3. 重新打包 (Re-zip)
             self._zip_folder(temp_dir, output_path)
-            print(f"[+] Success! Protected PPT saved to: {output_path}")
+            print(f"[SUCCESS] Output saved: {output_path}")
             return True
 
     def extract(self, input_path, key="1"):

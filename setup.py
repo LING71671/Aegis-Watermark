@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='aegis-watermark',
-    version='0.4.0',
+    version='0.6.0',
     author='LingQingyang',
     author_email='1739677116@qq.com',
     description='图片与PPT专业级隐形盲水印工具 | Professional blind watermarking tool for images and PPTX documents.',

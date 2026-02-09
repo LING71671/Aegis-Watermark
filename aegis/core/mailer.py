@@ -42,5 +42,5 @@ class Mailer:
                 server.sendmail(self.sender_email, recipient_email, message.as_string())
             return True
         except Exception as e:
-            print(f"[!] Mail Sending Failed to {recipient_email}: {e}")
+            print(f"[ERROR] SMTP distribution failed for {recipient_email}: {e}")
             return False

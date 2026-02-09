@@ -81,7 +81,7 @@ class FrequencyWatermarker:
             bwm.embed(output_path)
             return True
         except Exception as e:
-            print(f"[!] Error in embed_with_precomputed_wm: {e}")
+            print(f"[ERROR] Exception in embed_with_precomputed_wm: {e}")
             return False
 
     def extract(self, input_path, wm_size, output_wm_path=None):

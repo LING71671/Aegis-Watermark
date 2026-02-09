@@ -47,7 +47,7 @@ def process_single_page(page_data):
         
         return page_index, pdf_bytes
     except Exception as e:
-        print(f"[!] Error processing page {page_index}: {e}")
+        print(f"[ERROR] Page processing exception {page_index}: {e}")
         return page_index, None
 
 class PDFHandler(BaseHandler):
@@ -80,7 +80,7 @@ class PDFHandler(BaseHandler):
             output_doc.close()
             return True
         except Exception as e:
-            print(f"[!] PDF Parallel Processing Error: {e}")
+            print(f"[ERROR] PDF processing exception: {e}")
             return False
 
     def extract(self, input_path, output_wm_path=None, key="1"):
@@ -115,5 +115,5 @@ class PDFHandler(BaseHandler):
             doc.close()
             return result
         except Exception as e:
-            print(f"[!] PDF Extraction Error: {e}")
+            print(f"[ERROR] PDF extraction exception: {e}")
             return None

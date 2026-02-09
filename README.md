@@ -1,89 +1,70 @@
-# Aegis - 隐形水印与数字签名工具 🛡️
+# Aegis - 隐形水印与数字签名工具
 ### Blind Watermarking & Digital Signature Tool
 
 [![PyPI version](https://img.shields.io/pypi/v/aegis-watermark.svg)](https://pypi.org/project/aegis-watermark/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-Aegis 是一个用于图片、PDF 及 PPTX 文档的盲水印嵌入与数字签名工具。它采用 GPLv3 协议开源，确保自由软件的持续传承。
+Aegis 是一个简单的开源工具，用于在图片、PDF 及 PPTX 文档中嵌入盲水印和数字签名。它通过频域算法提供基础的版权标记功能，并利用 RSA 技术协助验证文件的来源与完整性。
 
-Aegis is a tool for embedding blind watermarks and digital signatures into images, PDFs, and PPTX documents. It uses frequency-domain algorithms for invisible copyright marking and RSA technology for file integrity verification.
-
----
-
-## ✨ 主要功能 | Features
-
-- **隐形盲水印 (Blind Watermarking)**：在频域嵌入不可见的水印，支持全页面保护，具有抗压缩和抗裁剪能力。
-- **数字签名 (Digital Signature)**：支持 RSA-4096 签名，用于验证文件签署人身份及文件是否被篡改。
-- **文档支持 (Doc Support)**：支持对 PPTX 内部图片进行批量保护，以及对 PDF 页面进行整体水印覆盖。
-- **并行处理 (Parallel Processing)**：针对多页 PDF 提供多进程并行加速。
+Aegis is a simple open-source tool for embedding blind watermarks and digital signatures into images, PDFs, and PPTX documents. It provides basic copyright marking using frequency-domain algorithms and helps verify file source and integrity via RSA technology.
 
 ---
 
-## 🚀 安装与环境配置 | Installation & Setup
+## 主要功能 | Features
+
+- **基础盲水印**: 支持在图片和 PDF 页面中嵌入不影响视觉质量的隐形标记，具备基础的抗压缩能力。
+- **数字签名**: 支持生成多套 RSA-4096 密钥对，为文件提供可追溯的数字签署。
+- **文档分发与溯源**: 集成了简单的邮件分发流程和本地 SQLite 数据库，用于记录文件的分发去向，协助在发现泄露时进行初步溯源。
+- **自动化操作**: 提供交互式引导界面，支持自动生成建议的文件保存路径及提取后的自动预览。
+
+---
+
+## 安装与环境配置 | Installation & Setup
 
 ### 1. 环境准备
-在安装 Aegis 之前，请确保您的系统已具备以下基础环境：
+在安装 Aegis 之前，建议确保您的系统已具备以下基础环境：
 
-- **Python 3.8+**: 推荐从 [Python 官网](https://www.python.org/downloads/) 下载。如需指导，可参考 [官方安装指南](https://docs.python.org/zh-cn/3/using/index.html)。
-- **OpenCV 运行库**: 本工具依赖 OpenCV 进行底层图像处理。通常 `pip` 会自动处理相关依赖，但在某些特定环境下，您可能需要参考 [OpenCV 官方文档](https://docs.opencv.org/master/da/df6/tutorial_py_abs_installation.html) 手动配置环境。
+- **Python 3.8+**: 推荐从 [Python 官网](https://www.python.org/downloads/) 下载。
+- **OpenCV 运行库**: 底层图像处理依赖。通常通过 `pip` 自动安装，若在特殊 Linux 环境下运行，请参考相关发行版的包管理说明。
 
 ### 2. 安装 Aegis
-在终端执行以下命令即可一键安装：
-
 ```bash
 pip install aegis-watermark
 ```
 
 ---
 
-## 🛠️ 详细使用指南 | Detailed Usage Guide
+## 使用教程 | Usage Guide
 
-Aegis 提供交互式菜单与命令行参数两种使用方式。
-
-### 1. 身份初始化 (Identity Setup)
-在使用数字签名功能前，需要先建立身份：
-- 运行 `aegis` 并选择 **身份管理 (Identity)**。
-- 输入姓名（或机构名）与邮箱，系统将生成 RSA-4096 密钥对及证书。
-- **安全提示**：私钥保存在本地 `.aegis_identity/` 目录，请务必妥善保管。
-
-### 2. 交互模式 (Interactive Mode)
-直接在终端输入 `aegis` 即可进入向导：
-1. **嵌入水印 (Embed)**：
-   - 输入文件路径（图片、PDF 或 PPTX）。
-   - 输入水印文本。
-   - 设置**密钥 (Key)**：这是提取水印的唯一凭证，建议使用复杂的字符串。
-   - 若已初始化身份，可选择是否附加数字签名。
-2. **提取分析 (Extract)**：
-   - 输入带水印的文件路径。
-   - 输入嵌入时使用的密钥。
-   - 系统将生成分析报告，并输出水印证据图片。
-
-### 3. 命令行模式 (CLI Mode)
-适用于脚本自动化处理：
+### 1. 快速进入界面
+直接在终端输入以下命令即可打开交互式菜单，无需记忆复杂的参数：
 ```bash
-# 嵌入水印
-# -i: 输入文件, -o: 输出文件, -t: 水印内容, -k: 密钥
-aegis embed -i original.jpg -o protected.jpg -t "Copyright-2026" -k "MySecretKey"
-
-# 提取水印
-# -i: 输入文件, -o: 证据图保存路径, -k: 密钥
-aegis extract -i protected.jpg -o evidence.png -k "MySecretKey"
+aegis
 ```
 
-### 4. 特定格式说明 (Format Specifics)
-- **PDF**: 采用全页面平铺水印与 2K 超采样渲染，确保复杂背景下的提取清晰度。
-- **PPTX**: 自动遍历演示文稿中的所有幻灯片，对其中嵌入的图片进行盲水印保护。
+### 2. 身份与配置 (Settings)
+首次使用前，建议完成以下设置：
+- **身份证书**: 支持创建多个身份。例如可以分别为“个人”和“工作”创建不同的 RSA 证书。
+- **发信配置**: 如果需要使用批量分发功能，请在此处配置 SMTP 邮箱信息。
+
+### 3. 版权保护与追踪 (Workflow)
+- **嵌入 (Embed)**: 选择文件并输入水印文本。若有多套身份，系统会提示您选择签署者。
+- **分发 (Distribute)**: 准备一个包含邮箱列表的文本文件，系统将为每位收件人生成带唯一 ID 的副本并通过邮件发送。
+- **溯源 (Trace)**: 发现疑似泄露文件时，使用此功能提取 ID，系统将自动检索本地数据库返回分发记录。
+
+### 4. 交互小技巧
+- **回退**: 在输入任何路径或文本时，输入 `:b` 即可随时放弃当前操作并返回主菜单。
+- **编辑**: 支持使用键盘方向键对已输入的文字进行移动和修改。
 
 ---
 
-## ⚠️ 注意事项 | Troubleshooting
+## 注意事项 | Troubleshooting
 
-- **提取乱码**: 盲水印对**密钥**极其敏感，提取时若密钥错误将得到乱码。此外，若图像比例被严重拉伸，提取效果也会受到影响。
-- **文件体积**: PDF 处理后由于采用了图像化保护，文件体积会有所增加。
-- **数字签名**: 若文件在签署后被第三方软件（如 Photoshop）修改并另存为，数字签名可能会失效。
+- **算法局限性**: 盲水印技术在面对极高强度的破坏性压缩或大幅度拉伸时，提取效果可能会下降。
+- **存储建议**: 私钥和追踪数据库保存在本地 `.aegis_identity/` 目录，请注意备份与安全。
 
 ---
 
-## ⚖️ 开源协议 | License
+## 开源协议 | License
 
-本项目采用 [MIT License](LICENSE) 开源。
+本项目采用 [GPL v3](LICENSE) 协议开源。
