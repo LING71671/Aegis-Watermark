@@ -2,9 +2,9 @@
 ### Blind Watermarking & Digital Signature Tool
 
 [![PyPI version](https://img.shields.io/pypi/v/aegis-watermark.svg)](https://pypi.org/project/aegis-watermark/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-Aegis 是一个用于图片、PDF 及 PPTX 文档的盲水印嵌入与数字签名工具。它通过频域算法实现隐形版权标记，并结合 RSA 技术提供文件完整性校验。
+Aegis 是一个用于图片、PDF 及 PPTX 文档的盲水印嵌入与数字签名工具。它采用 GPLv3 协议开源，确保自由软件的持续传承。
 
 Aegis is a tool for embedding blind watermarks and digital signatures into images, PDFs, and PPTX documents. It uses frequency-domain algorithms for invisible copyright marking and RSA technology for file integrity verification.
 
