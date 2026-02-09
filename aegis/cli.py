@@ -18,9 +18,12 @@ from aegis.handlers.image import ImageHandler
 from aegis.handlers.pdf import PDFHandler
 from aegis.core.signature import SignatureManager
 from aegis.core.sniffer import sniff_file_type
+from aegis.core.database import TrackingDB
+from aegis.core.mailer import Mailer
 
 console = Console()
 sig_mgr = SignatureManager()
+db = TrackingDB()
 
 # --- 多语言配置 ---
 MESSAGES = {
@@ -332,6 +335,117 @@ def extract(input, output, key):
     """Extract mode"""
     print_banner()
     run_extract(input, output, key)
+
+@main.command()
+@click.option('--input', '-i', required=True, help="Original file to distribute")
+@click.option('--recipients', '-r', required=True, help="Recipients file (one email per line)")
+@click.option('--template', '-t', default="ID: {}", help="Watermark text template ({} will be replaced by ID)")
+@click.option('--key', '-k', default="1")
+@click.option('--subject', '-s', default="File Share")
+def distribute(input, recipients, template, key, subject):
+    """Batch distribute personalized protected files via Email."""
+    import uuid
+    import json
+    
+    # 尝试加载配置 (简单存储在 .aegis_identity/config.json)
+    cfg_path = os.path.join(os.path.expanduser("~"), ".aegis_identity", "config.json")
+    if not os.path.exists(cfg_path):
+        console.print("[red]SMTP not configured. Run 'aegis config' first.[/red]")
+        return
+    
+    with open(cfg_path, 'r') as f:
+        cfg = json.load(f)
+    
+    mailer = Mailer(cfg['smtp_server'], cfg['smtp_port'], cfg['sender_email'], cfg['password'])
+    
+    if not os.path.exists(recipients):
+        console.print(f"[red]Recipients file not found: {recipients}[/red]")
+        return
+
+    with open(recipients, 'r') as f:
+        email_list = [line.strip() for line in f if "@" in line]
+
+    print_banner()
+    console.print(f"[*] Starting Batch Distribution for {len(email_list)} recipients...")
+
+    for email in email_list:
+        dist_id = uuid.uuid4().hex[:8].upper()
+        wm_text = template.replace("{}", dist_id)
+        temp_output = f"dist_{dist_id}_{os.path.basename(input)}"
+        
+        console.print(f"[*] Processing for [cyan]{email}[/cyan] (ID: {dist_id})...")
+        
+        # 记录到数据库
+        log_id = db.log_distribution(os.path.basename(input), email, dist_id, key)
+        
+        # 嵌入水印
+        f_type = sniff_file_type(input)
+        if f_type == 'ppt': handler = PPTHandler()
+        elif f_type == 'pdf': handler = PDFHandler()
+        else: handler = ImageHandler()
+        
+        if handler.process(input, temp_output, wm_text, key=key):
+            success = mailer.send_protected_file(email, temp_output, subject, f"Please find the protected file attached. Your unique ID is {dist_id}")
+            if success:
+                db.update_status(log_id, "SUCCESS")
+                console.print(f"  [green]✓ Email sent successfully.[/green]")
+            else:
+                db.update_status(log_id, "MAIL_FAILED")
+        else:
+            db.update_status(log_id, "EMBED_FAILED")
+        
+        if os.path.exists(temp_output): os.remove(temp_output)
+
+@main.command()
+@click.option('--input', '-i', required=True, help="Leaked file to trace")
+@click.option('--key', '-k', default="1")
+def trace(input, key):
+    """Trace the distribution history of a leaked file."""
+    print_banner()
+    temp_wm = "trace_extract.png"
+    
+    f_type = sniff_file_type(input)
+    if f_type == 'ppt': handler = PPTHandler()
+    elif f_type == 'pdf': handler = PDFHandler()
+    else: handler = ImageHandler()
+    
+    result_path = handler.extract(input, output_wm_path=temp_wm, key=key)
+    
+    if result_path and os.path.exists(result_path):
+        # 这里需要用户查看提取出的文字，或者我们尝试 OCR（由于盲水印目前主要是视觉确认，我们提示用户输入 ID）
+        console.print("[yellow]Watermark extracted to trace_extract.png. Please identify the ID in the image.[/yellow]")
+        dist_id = questionary.text("Enter the ID identified in the evidence image:").ask()
+        
+        if dist_id:
+            record = db.find_by_watermark(dist_id)
+            if record:
+                table = Table(title="Trace Results", header_style="bold magenta")
+                table.add_column("Field")
+                table.add_column("Value")
+                table.add_row("Recipient", f"[bold green]{record[2]}[/bold green]")
+                table.add_row("Original File", record[1])
+                table.add_row("Timestamp", record[5])
+                table.add_row("Status", record[6])
+                console.print(table)
+            else:
+                console.print("[red]No matching distribution record found in database.[/red]")
+    else:
+        console.print("[red]Failed to extract watermark signal.[/red]")
+
+@main.command()
+def config():
+    """Configure SMTP settings for distribution."""
+    import json
+    data = {}
+    data['smtp_server'] = questionary.text("SMTP Server (e.g., smtp.qq.com):").ask()
+    data['smtp_port'] = int(questionary.text("SMTP Port (e.g., 465):").ask())
+    data['sender_email'] = questionary.text("Sender Email:").ask()
+    data['password'] = questionary.password("SMTP Password/Auth Code:").ask()
+    
+    cfg_path = os.path.join(os.path.expanduser("~"), ".aegis_identity", "config.json")
+    with open(cfg_path, 'w') as f:
+        json.dump(data, f)
+    console.print("[green]Configuration saved![/green]")
 
 if __name__ == '__main__':
     main()
