@@ -35,6 +35,7 @@ env/
 *.swo
 
 # Project Specific
+.gemini/
 .aegis_identity/
 identity.crt
 private.key
