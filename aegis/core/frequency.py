@@ -29,9 +29,9 @@ class FrequencyWatermarker:
         img = Image.new('1', size, 0)
         draw = ImageDraw.Draw(img)
         
-        # 字体大小适配
-        font_size = int(size[0] * 0.05) 
-        if font_size < 15: font_size = 15
+        # 字体大小适配 - 稍微调小一点以容纳更多平铺
+        font_size = int(size[0] * 0.04) 
+        if font_size < 12: font_size = 12
         
         try:
             font = ImageFont.load_default()
@@ -41,9 +41,9 @@ class FrequencyWatermarker:
         bbox = draw.textbbox((0, 0), text, font=font)
         tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
         
-        # 平铺绘制
-        step_x = tw + 40
-        step_y = th + 40
+        # 紧凑平铺绘制
+        step_x = tw + 25
+        step_y = th + 25
         for y in range(0, size[1], step_y):
             for x in range(0, size[0], step_x):
                 # 错位平铺，增加鲁棒性
